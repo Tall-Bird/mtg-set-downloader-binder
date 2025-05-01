@@ -73,7 +73,6 @@ def get_card_data_and_download(card_name, set_code, card_number, is_from_list=Fa
 
     return saved, not_saved
 
-
 def save_card_image(card, is_from_list=False):
     # Function to save the card image to the appropriate directory and file path
     set_name = get_valid_filename(card['set_name'])  # Sanitize the set name for the directory name
@@ -104,12 +103,12 @@ def save_card_image(card, is_from_list=False):
             file_path_rear = os.path.join(dir_path, f"{collector_number}_{name}_rear.jpg")
 
     if file_path is not None:
-        writefile(card['image_uris']['large'], file_path)  # Download and save the card image
+        writefile(card['image_uris']['png'], file_path)  # Download and save the card image
         print(f"Card image saved: {file_path}")
         saved_count += 1
     elif file_path_front is not None and file_path_rear is not None:
-        writefile(card['card_faces'][0]['image_uris']['large'], file_path_front)
-        writefile(card['card_faces'][1]['image_uris']['large'], file_path_rear)
+        writefile(card['card_faces'][0]['image_uris']['png'], file_path_front)
+        writefile(card['card_faces'][1]['image_uris']['png'], file_path_rear)
         print(f"Card images saved: {file_path_front}, {file_path_rear}")
         saved_count += 1
     else:
@@ -125,16 +124,23 @@ def download_cards_list(verify_ssl, is_from_list=False):
 
     saved_count = 0
     not_saved_count = 0
+    unsaved_list = ""
 
     for card in card_list:
         card_data = card.strip().split(" ")  # Split the card data into card name, set code, and card number
+
+        if card_data[-1] == '*F*': # Removes foil from Mox decklist
+            card_data = card_data[0:-1]
+
+        if card_data[0] == '' or card_data[0] == 'SIDEBOARD:': # Removes blank or Sideboard pieces from Decklist
+            continue
 
         if len(card_data) < 3:
             card_name = card.strip()
             set_code = ""
             card_number = ""
         else:
-            card_name = " ".join(card_data[:-2])
+            card_name = " ".join(card_data[1:-2])
             set_code = card_data[-2]
             card_number = card_data[-1]
 
@@ -142,8 +148,13 @@ def download_cards_list(verify_ssl, is_from_list=False):
         saved_count += saved
         not_saved_count += not_saved
 
+        if not_saved == 1:
+            unsaved_list = unsaved_list + (f"Error retrieving card data for '{card_name}' in set '{set_code}' with number '{card_number}'.\n")
+
+    print('\n')
     print(f"Total cards saved: {saved_count}")
     print(f"Total cards not saved: {not_saved_count}")
+    print(f"{unsaved_list}")
 
 def download_set(verify_ssl):
     # Function to download card images from a specific Magic: The Gathering set
